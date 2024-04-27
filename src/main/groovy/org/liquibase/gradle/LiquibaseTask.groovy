@@ -15,6 +15,7 @@
 package org.liquibase.gradle
 
 import org.gradle.api.Task
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.JavaExec
@@ -27,11 +28,11 @@ import static org.liquibase.gradle.Util.versionAtLeast
  *
  * @author Stven C. Saliman
  */
-class LiquibaseTask extends JavaExec {
+abstract class LiquibaseTask extends JavaExec {
 
     /** The Liquibase command to run */
     @Input
-    LiquibaseCommand liquibaseCommand
+    abstract Property<LiquibaseCommand> getLiquibaseCommand()
 
     /** a {@code Provider} that can provide a value for the liquibase version. */
     private Provider<String> liquibaseVersionProvider
@@ -73,10 +74,10 @@ class LiquibaseTask extends JavaExec {
         // Set values on the JavaExec task using the Argument Builder appropriate for the Liquibase
         // version we have.
         if ( versionAtLeast(liquibaseVersion, '4.4') ) {
-            setArgs(ArgumentBuilder.buildLiquibaseArgs(project, activity, liquibaseCommand, liquibaseVersion))
+            setArgs(ArgumentBuilder.buildLiquibaseArgs(project, activity, liquibaseCommand.get(), liquibaseVersion))
         } else {
             logger.warn("using legacy argument builder.  Consider updating to Liquibase 4.4+")
-            setArgs(LegacyArgumentBuilder.buildLiquibaseArgs(project, activity, liquibaseCommand, liquibaseVersion))
+            setArgs(LegacyArgumentBuilder.buildLiquibaseArgs(project, activity, liquibaseCommand.get(), liquibaseVersion))
         }
 
         def classpath = project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION)

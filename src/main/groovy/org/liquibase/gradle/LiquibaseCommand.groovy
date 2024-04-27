@@ -8,7 +8,7 @@ package org.liquibase.gradle
  * @author Steven C. Saliman
  */
 
-abstract class LiquibaseCommand {
+abstract class LiquibaseCommand implements Serializable {
     // These constants represent the known arguments supported by a Liquibase command.  They come
     // from collecting all the CommandArgumentDefinition from CommandSteps in LB.  If you add
     // something here, you must add it to the collection later.  LB uses camelCase in the Java code,
