@@ -1,5 +1,7 @@
 package org.liquibase.gradle
 
+import org.gradle.api.tasks.Input
+
 /**
  * Base class for representing Liquibase commands.  There will be one class in the
  * {@code liquibase.command} package for each command Liquibase supports.  Most of them is based on
@@ -150,6 +152,7 @@ abstract class LiquibaseCommand {
      * from the CommandStep and the Liquibase documentation at
      * https://docs.liquibase.com/commands/home.html
      */
+    @Input
     def command = null
 
     /**
@@ -158,6 +161,7 @@ abstract class LiquibaseCommand {
      * will be subtle differences, such as with the mark-changeset-ran command, which in its legacy
      * form is markNextChangeSetRan with a capital "S".
      */
+    @Input
     def legacyCommand = null
 
     /**
@@ -165,6 +169,7 @@ abstract class LiquibaseCommand {
      * {@code tag} command requires the tag value. Most, but not all commands that require a value
      * will also have a {@link #valueArgument}.
      */
+    @Input
     def requiresValue = false
 
     /**
@@ -175,6 +180,7 @@ abstract class LiquibaseCommand {
      * Value Arguments come from the 3rd argument of the {@code collectArguments} method in each
      * CommandStep in liquibase.
      */
+    @Input
     def valueArgument = null
 
     /**
@@ -184,6 +190,7 @@ abstract class LiquibaseCommand {
      * {@code CommandArgumentDefinition} constants in each Liquibase CommandStep, minus the ones
      * that are marked as hidden in that CommandStep's static initializer.
      */
+    @Input
     def commandArguments = null
 
     /**
@@ -191,5 +198,6 @@ abstract class LiquibaseCommand {
      * the plugin for the command.  Descriptions are based on the {@code adjustCommandDefinition}
      * method from the Liquibase CommandStep.
      */
+    @Input
     def description = null
 }
