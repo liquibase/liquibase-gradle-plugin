@@ -9,7 +9,7 @@ Release 3.0.2 has been released
 -------------------------------
 
 Release 3.0.2 has been released with support for Liquibase versions through 4.31.1.  See
-[Releases](./doc/releases.md) for more details.
+[Releases](./doc/releases.md) and the [Changelog](./doc/changelog.md) for more details.
 
 Note that Liquibase 4.30.0 added a dependency to Commons Lang, but didn't declare it as a transitive
 dependency.  `liquibaseRuntime 'org.apache.commons:commons-lang3:3.14.0'` will need to be added to

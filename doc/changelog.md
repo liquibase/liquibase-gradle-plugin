@@ -1,3 +1,13 @@
+Changes for 3.0.2
+=================
+
+- add `--integration-name parameter` to all commands executed through gradle, with thanks 
+  @StevenMassaro. Fixes #155.
+
+- Make argumentBuilder internal to avoid fingerprinting issues, with thanks to Avery Aube
+  (@averyaube). Fixes #162.
+
+
 Changes for 3.0.1
 =================
 - Fixed a "fingerprinting" issue, with thanks to @averyaube.  Fixes #120. 

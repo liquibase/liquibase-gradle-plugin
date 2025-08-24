@@ -16,6 +16,10 @@ to your build.gradle file.
 This page gives the highlights newer releases.  For complete details of each release, including 
 older releases, see the [changelog](./changelog.md).
 
+### Release 3.0.2 (March 2, 2025)
+
+- This release contains some minor bug fixes.
+
 ### Release 3.0.1 (September 14, 2024)
 
 - This release fixes a bug that was causing Liquibase to be called without any arguments.
