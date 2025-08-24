@@ -29,4 +29,5 @@ Documentation
 - [How it works](./doc/how-it-works.md)
 - [Usage](./doc/usage.md)
 - [Upgrading Liquibase](./doc/upgrading-liquibase.md)
+- [Publishing the plugin](./doc/publishing-new-version.md)
 

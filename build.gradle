@@ -75,7 +75,6 @@ gradlePlugin {
 // Configure the Vanniktech publishing plugin.
 mavenPublishing {
     coordinates(group, archivesBaseName, liquibaseGradlePluginVersion)
-//    configure(new com.vanniktech.maven.publish.GradlePublishPlugin())
     signAllPublications()
     // The vanniktech plugin is supposed to default to Maven Central, but as of 6/21/25, it still
     // defaults to the old OSSRH site.
