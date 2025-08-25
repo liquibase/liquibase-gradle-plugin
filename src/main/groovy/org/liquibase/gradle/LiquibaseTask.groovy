@@ -15,6 +15,7 @@
 package org.liquibase.gradle
 
 import org.gradle.api.Task
+import org.gradle.api.file.FileCollection
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Classpath
@@ -51,7 +52,7 @@ class LiquibaseTask extends JavaExec {
     final Property<ProjectInfo> projectInfo
 
     @Classpath
-    def classPath
+    FileCollection classPath
 
     /** a {@code Provider} that can provide a value for the liquibase version. */
     private Provider<String> liquibaseVersionProvider
