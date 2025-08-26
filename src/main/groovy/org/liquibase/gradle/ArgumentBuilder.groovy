@@ -57,7 +57,7 @@ class ArgumentBuilder {
         SortedSet<ConfigurationDefinition<?>> globalConfigurations = Scope
                 .getCurrentScope()
                 .getSingleton(LiquibaseConfiguration.class)
-                .getRegisteredDefinitions(false);
+                .getRegisteredDefinitions(false)
         globalConfigurations.each { opt ->
             // fix it and add it.
             def fixedArg = fixGlobalArgument(opt.getKey())
@@ -215,15 +215,21 @@ class ArgumentBuilder {
 
         // Now go through all of the Gradle properties that start with "liquibase" and use them
         // to override/add to the arguments, ignoring the ones Liquibase won't recognize.
-        def liquibaseProperties = projectInfo.getLiquibaseProperties()
-        liquibaseProperties.each {
-            def argName = it.key - "liquibase"
-            argName = argName.uncapitalize()
-            if (argName == "changelogParameters") {
-                return
+        projectInfo.getLiquibaseProperties().findAll { key, value ->
+            if ( !allGlobalProperties.contains(key) && !allCommandProperties.contains(key) ) {
+                return false
             }
-            projectInfo.logger.trace("liquibase-plugin:    Setting ${argName}=${it.value} from the command line")
-            argumentMap.put(argName, it.value)
+
+            // Tasks are also properties, and there is a liquibaseTag task that we want to ignore.
+            if ( value != null && LiquibaseTask.class.isAssignableFrom(value.class) ) {
+                return false
+            }
+            return true
+        }.each { key, value ->
+            def argName = key - "liquibase"
+            argName = argName.uncapitalize()
+            projectInfo.logger.trace("liquibase-plugin:    Setting ${argName}=${value} from the command line")
+            argumentMap.put(argName, value)
         }
 
         // Return the sorted map.  Unit tests need to have a predictable argument order, and
@@ -253,9 +259,12 @@ class ArgumentBuilder {
             changelogParameters.put(it.key, it.value)
         }
 
-        // Override/add to the map with Gradle properties
-        def changelogParamProperties = projectInfo.getChangelogParameters()
-        changelogParamProperties.each { key, value ->
+        // Override/add to the map with projectInfo properties
+        if ( !projectInfo.getLiquibaseProperties().containsKey("liquibaseChangelogParameters") ) {
+            return changelogParameters
+        }
+        projectInfo.getLiquibaseProperties().get("liquibaseChangelogParameters").split(",").each {
+            def (key, value) = it.split("=")
             projectInfo.logger.trace("liquibase-plugin:    Adding property changelogParameter ${key}=${value}")
             changelogParameters.put(key, value)
         }
