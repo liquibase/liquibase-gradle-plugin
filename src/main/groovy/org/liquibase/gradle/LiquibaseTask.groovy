@@ -50,6 +50,9 @@ class LiquibaseTask extends JavaExec {
 
     @Internal
     final Property<ProjectInfo> projectInfo
+    
+    @Internal
+    final Property<LiquibaseInfo> liquibaseInfo
 
     @Classpath
     FileCollection classPath
@@ -59,6 +62,7 @@ class LiquibaseTask extends JavaExec {
 
     LiquibaseTask() {
         projectInfo = project.objects.property(ProjectInfo)
+        liquibaseInfo = project.objects.property(LiquibaseInfo)
         classPath = project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION)
     }
 
@@ -98,7 +102,8 @@ class LiquibaseTask extends JavaExec {
      */
     def runLiquibase(activity) {
         def projectInfo = projectInfo.get()
-        def args = argumentBuilder.buildLiquibaseArgs(activity, commandName, commandArguments, projectInfo)
+        def liquibaseInfo = this.liquibaseInfo.get()
+        def args = argumentBuilder.buildLiquibaseArgs(activity, commandName, commandArguments, liquibaseInfo)
         setArgs(args)
 
         if ( classPath == null || classPath.isEmpty() ) {
@@ -130,6 +135,9 @@ class LiquibaseTask extends JavaExec {
         def configProject = project
         projectInfo.set(project.provider {
              ProjectInfo.fromProject(configProject)
+        })
+        liquibaseInfo.set(project.provider {
+             LiquibaseInfo.fromProject(configProject)
         })
         return super.configure(closure)
     }
