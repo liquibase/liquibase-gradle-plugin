@@ -1,13 +1,14 @@
 package org.liquibase.gradle
 
 import org.gradle.api.Project
+import org.gradle.api.logging.Logger
 
 class LiquibaseInfo {
-    Object logger
+    Logger logger
     File buildDir
     Map<String, Object> liquibaseProperties
     
-    LiquibaseInfo(Object logger, File buildDir, Map<String, Object> liquibaseProperties) {
+    LiquibaseInfo(Logger logger, File buildDir, Map<String, Object> liquibaseProperties) {
         this.logger = logger
         this.buildDir = buildDir
         this.liquibaseProperties = liquibaseProperties
