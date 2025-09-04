@@ -14,12 +14,22 @@
 
 package org.liquibase.gradle
 
+import org.gradle.api.DefaultTask
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Task
+import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.file.FileCollection
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
+import org.gradle.api.provider.SetProperty
+import org.gradle.api.services.ServiceReference
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskAction
+import org.gradle.process.ExecOperations
+
+import javax.inject.Inject
 
 import static org.liquibase.gradle.Util.versionAtLeast
 
@@ -32,43 +42,97 @@ import static org.liquibase.gradle.Util.versionAtLeast
  *
  * @author Stven C. Saliman
  */
-class LiquibaseTask extends JavaExec {
+class LiquibaseTask extends DefaultTask {
 
     /** The Liquibase command to run */
     @Input
-    def commandName
+    final Property<String> commandName
 
     /** The supported arguments of the command */
     @Input
-    def commandArguments
+    final SetProperty<String> commandArguments
 
-    /** The argument builder that will build the arguments to send to Liquibase. */
-    @Internal
-    ArgumentBuilder argumentBuilder
+    /** Activities for configuration-cache friendly execution. */
+    @Input
+    NamedDomainObjectContainer<Activity> activities
+
+    /** Main class to run Liquibase CLI. Mirrors JavaExec's mainClass property for compatibility. */
+    @Input
+    Provider<String> mainClass
+
+    /** Build Service Provider that will build the arguments to send to Liquibase. */
+    @ServiceReference
+    Provider<ArgumentBuilderService> argumentBuilderService
 
     /** a {@code Provider} that can provide a value for the liquibase version. */
     private Provider<String> liquibaseVersionProvider
+
+    /** Provider for runList from the extension, captured during configuration. */
+    private Provider<String> runListProvider
+
+    /** Provider for jvmArgs from the extension, captured during configuration. */
+    private Provider<List<String>> jvmArgsProvider
+
+    /** Provider for the liquibaseRuntime configuration's classpath, captured during configuration. */
+    private Provider<FileCollection> liquibaseRuntimeConfigurationProvider
+
+    /** Provider for a custom main class name from the extension, captured during configuration. */
+    private Provider<String> customMainClassProvider
+
+    /** Exec operations to launch Liquibase without accessing Project at execution time. */
+    private final ExecOperations execOperations
+
+    /** ProviderFactory for building Providers without accessing Project at execution time. */
+    private final ProviderFactory providerFactory
+
+    @Inject
+    LiquibaseTask(
+            ObjectFactory objects,
+            ExecOperations execOperations,
+            ProviderFactory providerFactory
+    ) {
+        this.execOperations = execOperations
+        this.providerFactory = providerFactory
+        this.mainClass = objects.property(String)
+        this.commandName = objects.property(String)
+        this.commandArguments = objects.setProperty(String)
+
+        // Initialize Providers at configuration time and set mainClass convention
+        // so it always has a value
+        this.liquibaseVersionProvider = createLiquibaseVersionProvider()
+        LiquibaseExtension ext = project.extensions.getByType(LiquibaseExtension)
+        this.customMainClassProvider = ext.mainClassName
+        this.runListProvider = ext.runList
+        this.jvmArgsProvider = ext.jvmArgs
+        this.liquibaseRuntimeConfigurationProvider = project.configurations.named(
+            LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION
+        ).map { it.incoming.files }
+        this.mainClass.set(
+            createMainClassProvider(this.liquibaseVersionProvider, this.customMainClassProvider)
+        )
+        this.activities = ext.activities
+    }
 
     /**
      * Do the work of this task.
      */
     @TaskAction
-    @Override
-    void exec() {
+    void runTask() {
+        String runList = runListProvider.getOrNull()
 
-        def activities = project.liquibase.activities
-        def runList = project.liquibase.runList
-
-        if ( activities == null || activities.size() == 0 ) {
-            throw new LiquibaseConfigurationException("No activities defined.  Did you forget to add a 'liquibase' block to your build.gradle file?")
+        if (activities.isEmpty()) {
+            throw new LiquibaseConfigurationException(
+                    "No activities defined.  Did you forget to add a 'liquibase' block \
+to your build.gradle file?")
         }
-
         if ( runList != null && runList.trim().size() > 0 ) {
             runList.split(',').each { activityName ->
                 activityName = activityName.trim()
-                def activity = activities.find { it.name == activityName }
+                Activity activity = activities.find { it.name == activityName }
                 if ( activity == null ) {
-                    throw new LiquibaseConfigurationException("No activity named '${activityName}' is defined the liquibase configuration")
+                    throw new LiquibaseConfigurationException(
+                            "No activity named '${activityName}' is defined the \
+liquibase configuration")
                 }
                 runLiquibase(activity)
             }
@@ -83,39 +147,33 @@ class LiquibaseTask extends JavaExec {
      *
      * @param activity the activity holding the Liquibase particulars.
      */
-    def runLiquibase(activity) {
+    void runLiquibase(Activity activity) {
+        List<String> args = argumentBuilderService.get()
+                .buildLiquibaseArgs(activity, commandName.get(), commandArguments.get())
 
-        def args = argumentBuilder.buildLiquibaseArgs(activity, commandName, commandArguments)
-        setArgs(args)
-
-        def classpath = project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION)
+        FileCollection classpath = liquibaseRuntimeConfigurationProvider.get()
         if ( classpath == null || classpath.isEmpty() ) {
-            throw new LiquibaseConfigurationException("No liquibaseRuntime dependencies were defined.  You must at least add Liquibase itself as a liquibaseRuntime dependency.")
+            throw new LiquibaseConfigurationException(
+                    "No liquibaseRuntime dependencies were defined.  You must at least add \
+Liquibase itself as a liquibaseRuntime dependency.")
         }
-        setClasspath(classpath)
-        // "inherit" the system properties from the Gradle JVM.
-        systemProperties System.properties
-        println "liquibase-plugin: Running the '${activity.name}' activity..."
-        project.logger.debug("liquibase-plugin: The ${mainClass.get()} class will be used to run Liquibase")
-        project.logger.debug("liquibase-plugin: Liquibase will be run with the following jvmArgs: ${project.liquibase.jvmArgs}")
-        jvmArgs(project.liquibase.jvmArgs)
-        project.logger.debug("liquibase-plugin: Running 'liquibase ${args.join(" ")}'")
-        super.exec()
-    }
+        String mainCls = mainClass
+                .getOrElse("liquibase.integration.commandline.LiquibaseCommandLine")
+        List<String> jvmArgsList = this.jvmArgsProvider.get()
+        logger.quiet("liquibase-plugin: Running the '${activity.name}' activity...")
+        logger.debug("liquibase-plugin: The ${mainCls} class will be used to run Liquibase")
+        logger.debug(
+                "liquibase-plugin: Liquibase will be run with the following jvmArgs: ${jvmArgsList}")
+        logger.debug("liquibase-plugin: Running 'liquibase ${args.join(" ")}'")
 
-    /**
-     * Watch for changes to the extension's mainClassName and make sure the task's main class is
-     * set correctly.  This method was created because Gradle 6.4 made changes to the main class
-     * preventing us from calling setMain during the execution phase.
-     *
-     * @param closure
-     * @return
-     */
-    @Override
-    Task configure(Closure closure) {
-        this.liquibaseVersionProvider = createLiquibaseVersionProvider()
-        mainClass.set(createMainClassProvider(this.liquibaseVersionProvider))
-        return super.configure(closure)
+        // Launch Liquibase using injected ExecOperations without touching Project at execution time
+        execOperations.javaexec { spec ->
+            spec.classpath = classpath
+            spec.mainClass.set(mainCls)
+            spec.jvmArgs(jvmArgsList)
+            spec.systemProperties(System.properties)
+            spec.args(args)
+        }
     }
 
     /**
@@ -131,22 +189,27 @@ class LiquibaseTask extends JavaExec {
      *         we're using.
      * @return a Provider that can return the correct Liquibase main class to use.
      */
-    Provider<String> createMainClassProvider(Provider<String> liquibaseVersionProvider) {
+    Provider<String> createMainClassProvider(
+            Provider<String> liquibaseVersionProvider,
+            Provider<String> customMainClassProvider
+    ) {
         // map the LiquibaseVersion to a class name
         return liquibaseVersionProvider.map {
             // If we have a custom class name, it doesn't matter what version of Liquibase we have,
             // just use the given class name.
-            def customMainClass = project.extensions.findByType(LiquibaseExtension.class).mainClassName
+            Object customMainClass = customMainClassProvider.getOrNull()
             if ( customMainClass ) {
-                project.logger.debug("liquibase-plugin: The extension's mainClassName was set, skipping version detection.")
+                logger.debug("liquibase-plugin: The extension's mainClassName was set, \
+skipping version detection.")
                 return customMainClass as String
             }
 
-            if ( versionAtLeast(it, '4.4') ) {
-                project.logger.debug("liquibase-plugin: Using the 4.4+ command line parser.")
+            if ( versionAtLeast(it, '4.24') ) {
+                logger.debug("liquibase-plugin: Using the 4.24+ command line parser.")
                 return "liquibase.integration.commandline.LiquibaseCommandLine"
             } else {
-                throw new LiquibaseConfigurationException("The Liquibase gradle plugin doesn't support this version of Liquibase!")
+                throw new LiquibaseConfigurationException(
+                        "The Liquibase gradle plugin doesn't support this version of Liquibase!")
             }
         }
     }
@@ -163,25 +226,28 @@ class LiquibaseTask extends JavaExec {
      * @throws LiquibaseConfigurationException if no version if Liquibase is found at runtime.
      */
     Provider<String> createLiquibaseVersionProvider() {
-        def config = project.configurations.liquibaseRuntime
         // Make a new provider whose value is the resolved artifact set, then call map, which maps
         // the artifacts to a version string, returning that version string as the provider's value.
-        return providerFactory.provider {
-            config.resolvedConfiguration.resolvedArtifacts
-        }.map { artifacts ->
-            def coreDeps = artifacts.findAll { dep ->
+        return project.configurations.named(
+                LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION
+        ).map {
+            it.resolvedConfiguration.resolvedArtifacts
+        }.map { Set<ResolvedArtifact> artifacts ->
+            Set<ResolvedArtifact> coreDeps = artifacts.findAll { dep ->
                 dep.moduleVersion.id.name == 'liquibase-core'
             }
 
             if ( coreDeps.size() < 1 ) {
-                throw new LiquibaseConfigurationException("Liquibase-core was not found in the liquibaseRuntime configuration!")
+                throw new LiquibaseConfigurationException("Liquibase-core was not found in \
+the liquibaseRuntime configuration!")
             }
             if ( coreDeps.size() > 1 ) {
-                project.logger.warn("liquibase-plugin: More than one version of the liquibase-core dependency was found in the liquibaseRuntime configuration!")
+                logger.warn("liquibase-plugin: More than one version of the liquibase-core \
+dependency was found in the liquibaseRuntime configuration!")
             }
 
-            def foundVersion = coreDeps.last()?.moduleVersion?.id?.version
-            project.logger.debug("liquibase-plugin: Found version ${foundVersion} of liquibase-core.")
+            String foundVersion = coreDeps.last()?.moduleVersion?.id?.version
+            logger.debug("liquibase-plugin: Found version ${foundVersion} of liquibase-core.")
             return foundVersion
         }
     }

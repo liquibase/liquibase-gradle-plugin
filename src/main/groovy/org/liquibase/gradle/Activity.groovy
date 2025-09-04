@@ -14,6 +14,11 @@
 
 package org.liquibase.gradle
 
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.MapProperty
+
+import javax.inject.Inject
+
 /**
  * This class represents a single activity that can be performed as part of a liquibase task.  It
  * is basically the intersection of changelogs and databases. Each named activity in the
@@ -21,25 +26,31 @@ package org.liquibase.gradle
  *
  * @author Steven C. Saliman
  */
-class Activity {
+class Activity implements Serializable {
     /**
      * The name of the activity.  This translates to the name of the block inside "activities".
      */
-    def name
+    String name
 
     /**
-     * The arguments to pass with the command, such as username or password.  We'll add a default
-     * value for the logLevel argument.
+     * The arguments to pass with the command, such as username or password. Default includes
+     * logLevel=info.
      */
-    def arguments = [logLevel: 'info']
+    final MapProperty<String, String> arguments
 
     /**
-     * Changelog parameters.  These are passed to Liquibase via "-D" options
+     * Changelog parameters. These are passed to Liquibase via "-D" options.
      */
-    def changelogParameters = [:]
+    final MapProperty<String, String> changelogParameters
 
-    Activity(String name) {
+    @Inject
+    Activity(String name, ObjectFactory objects) {
         this.name = name
+        this.arguments = objects.mapProperty(String, String)
+        // default logLevel to info
+        this.arguments.set(['logLevel': 'info'])
+        this.changelogParameters = objects.mapProperty(String, String)
+        this.changelogParameters.convention([:])
     }
 
     /**
@@ -48,10 +59,9 @@ class Activity {
      *
      * @param tokenMap the map of tokens and their values.
      */
-    def changelogParameters(tokenMap) {
-        tokenMap.each {
-            changelogParameters[it.key] = it.value
-        }
+    void changelogParameters(Map<String, String> tokenMap) {
+        if (tokenMap == null || tokenMap.isEmpty()) return
+        this.changelogParameters.putAll(tokenMap)
     }
 
     /**
@@ -64,7 +74,7 @@ class Activity {
      * argument.
      */
     def methodMissing(String name, args) {
-        arguments[name] = args? args[0]: null
+        this.arguments.put(name, args ? (String) args.first() : '')
     }
 
 }

@@ -14,8 +14,13 @@
 
 package org.liquibase.gradle
 
+import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
-import org.gradle.api.artifacts.Configuration
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
+
+import javax.inject.Inject
 
 /**
  * This is the Gradle extension that configures the Liquibase plugin.  All configuration options
@@ -31,26 +36,45 @@ class LiquibaseExtension {
      * Define the name of the Main class in Liquibase that the plugin should call to run Liquibase
      * itself.
      */
-    def mainClassName
+    final Property<String> mainClassName
 
     /**
      * Define the JVM arguments to use when running Liquibase.  This defaults to an empty array,
      * which is almost always what you want.
      */
-    def jvmArgs = []
+    final ListProperty<String> jvmArgs
 
     /**
      * Define the list of activities that run for each liquibase task.  This is a string of comma
      * separated activity names.  This is a string instead of an array to facilitate the use of
      * Gradle properties.  If no runList is defined, the plugin will run all activities.
      */
-    def runList
+    final Property<String> runList
 
-    LiquibaseExtension(NamedDomainObjectContainer<Activity> activities) {
+    @Inject
+    LiquibaseExtension(NamedDomainObjectContainer<Activity> activities, ObjectFactory objects) {
         this.activities = activities
+        this.runList = objects.property(String).convention("")
+        // Do not set a default for mainClassName here. Leaving it unset allows
+        // LiquibaseTask#createMainClassProvider to select LiquibaseCommandLine
+        // for supported Liquibase versions.
+        this.mainClassName = objects.property(String)
+        this.jvmArgs = objects.listProperty(String).convention([])
     }
 
-    def activities(Closure closure) {
+    /**
+     * Configure the `activities` container using the given closure.
+     *
+     * @param closure user configuration for the activities container
+     */
+    void activities(Closure closure) {
         activities.configure(closure)
+    }
+
+    /**
+     * Kotlin-friendly overload to configure the activities container.
+     */
+    void activities(Action<? super NamedDomainObjectContainer<Activity>> action) {
+        action.execute(activities)
     }
 }
