@@ -119,4 +119,5 @@ Desktop.ini
 # These are exception patterns that must come after the normal patterns.
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
+.history/
 
