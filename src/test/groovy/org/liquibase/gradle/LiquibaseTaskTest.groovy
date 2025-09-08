@@ -43,7 +43,7 @@ class LiquibaseTaskTest {
         // Intercept runLiquibase to capture which activities are executed and
         // avoid launching JavaExec
         List<String> invoked = []
-        task.metaClass.runLiquibase = { Activity activity ->
+        task.metaClass.runLiquibase = { ActivitySpec activity ->
             invoked << activity.name
         }
 
@@ -67,7 +67,7 @@ class LiquibaseTaskTest {
         LiquibaseTask task = project.tasks.findByName('update') as LiquibaseTask
 
         List<String> invoked = []
-        task.metaClass.runLiquibase = { Activity activity ->
+        task.metaClass.runLiquibase = { ActivitySpec activity ->
             invoked << activity.name
         }
 

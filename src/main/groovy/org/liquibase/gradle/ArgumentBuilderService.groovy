@@ -79,6 +79,43 @@ abstract class ArgumentBuilderService implements BuildService<ArgumentBuilderSer
              String commandName,
              Set<String> supportedCommandArguments
      ) {
+        return buildLiquibaseArgsInternal(
+            activity.arguments?.getOrElse([:]) as Map<String, String>,
+            activity.changelogParameters.get(),
+            commandName,
+            supportedCommandArguments
+        )
+    }
+    
+    /**
+     * Build arguments for an ActivitySpec (configuration cache compatible version).
+     *
+     * @param activitySpec the activity spec being run
+     * @param commandName command name
+     * @param supportedCommandArguments arguments supported by this specific command
+     */
+     List<String> buildLiquibaseArgs(
+             ActivitySpec activitySpec,
+             String commandName,
+             Set<String> supportedCommandArguments
+     ) {
+        return buildLiquibaseArgsInternal(
+            activitySpec.arguments ?: [:],
+            activitySpec.changelogParameters ?: [:],
+            commandName,
+            supportedCommandArguments
+        )
+    }
+
+    /**
+     * Internal implementation that builds arguments from resolved maps.
+     */
+    private List<String> buildLiquibaseArgsInternal(
+            Map<String, String> resolvedArgs,
+            Map<String, String> resolvedChangelogParams,
+            String commandName,
+            Set<String> supportedCommandArguments
+     ) {
         ensureGlobalArgsInitialized()
 
         List<String> liquibaseArgs = []
@@ -97,7 +134,6 @@ Liquibase supports it")
          // in older versions
         Set<String> fallbackGlobalArgs = [FALLBACK_ARG_SEARCH_PATH] as Set<String>
 
-        Map<String, String> resolvedArgs = activity.arguments?.getOrElse([:]) as Map<String, String>
         createArgumentMap(resolvedArgs).each { entry ->
             String argumentName = entry.key
             String entryValue = entry.value
@@ -133,7 +169,7 @@ not supported by the ${commandName} command")
         liquibaseArgs = globalArgs + kebabCommand + commandArguments
 
         if ( sendingChangelog ) {
-            Map<String, String> changelogParamMap = createChangelogParamMap(activity)
+            Map<String, String> changelogParamMap = createChangelogParamMap(resolvedChangelogParams)
             changelogParamMap.each { k, v -> liquibaseArgs += "-D${k}=${v}" }
         }
 
@@ -183,10 +219,9 @@ not supported by the ${commandName} command")
         return argumentMap.sort()
     }
 
-    private Map<String, String> createChangelogParamMap(Activity activity) {
+    private Map<String, String> createChangelogParamMap(Map<String, String> resolvedParams) {
         Map<String, String> changelogParameters = [:]
 
-        Map<String, String> resolvedParams = activity.changelogParameters.get()
         resolvedParams.each { entry ->
             LOGGER.trace("liquibase-plugin:    Adding activity changelogParameter \
 ${entry.key}=${entry.value}")

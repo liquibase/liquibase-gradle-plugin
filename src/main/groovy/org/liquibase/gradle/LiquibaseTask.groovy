@@ -20,6 +20,7 @@ import org.gradle.api.Task
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.file.FileCollection
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
@@ -53,8 +54,8 @@ class LiquibaseTask extends DefaultTask {
     final SetProperty<String> commandArguments
 
     /** Activities for configuration-cache friendly execution. */
-    @Input
-    NamedDomainObjectContainer<Activity> activities
+    @Input 
+    final MapProperty<String, ActivitySpec> activitySpecMap
 
     /** Main class to run Liquibase CLI. Mirrors JavaExec's mainClass property for compatibility. */
     @Input
@@ -96,6 +97,7 @@ class LiquibaseTask extends DefaultTask {
         this.mainClass = objects.property(String)
         this.commandName = objects.property(String)
         this.commandArguments = objects.setProperty(String)
+        this.activitySpecMap = objects.mapProperty(String, ActivitySpec)
 
         // Initialize Providers at configuration time and set mainClass convention
         // so it always has a value
@@ -110,7 +112,20 @@ class LiquibaseTask extends DefaultTask {
         this.mainClass.set(
             createMainClassProvider(this.liquibaseVersionProvider, this.customMainClassProvider)
         )
-        this.activities = ext.activities
+
+        // Convert NamedDomainObjectContainer<Activity> to configuration-cache-friendly properties
+        convertActivitiesToSpecs(ext.activities)
+    }
+
+    /**
+     * Convert NamedDomainObjectContainer<Activity> to configuration-cache-friendly properties
+     * at configuration time to avoid accessing Gradle model objects during execution.
+     */
+    private void convertActivitiesToSpecs(NamedDomainObjectContainer<Activity> activities) {
+        activities.each { activity ->
+            ActivitySpec spec = new ActivitySpec(activity)
+            this.activitySpecMap.put(activity.name, spec)
+        }
     }
 
     /**
@@ -120,7 +135,7 @@ class LiquibaseTask extends DefaultTask {
     void runTask() {
         String runList = runListProvider.getOrNull()
 
-        if (activities.isEmpty()) {
+        if (activitySpecMap.get().isEmpty()) {
             throw new LiquibaseConfigurationException(
                     "No activities defined.  Did you forget to add a 'liquibase' block \
 to your build.gradle file?")
@@ -128,28 +143,29 @@ to your build.gradle file?")
         if ( runList != null && runList.trim().size() > 0 ) {
             runList.split(',').each { activityName ->
                 activityName = activityName.trim()
-                Activity activity = activities.find { it.name == activityName }
-                if ( activity == null ) {
+                ActivitySpec activitySpec = activitySpecMap.get().get(activityName)
+                if ( activitySpec == null ) {
                     throw new LiquibaseConfigurationException(
                             "No activity named '${activityName}' is defined the \
 liquibase configuration")
                 }
-                runLiquibase(activity)
+                runLiquibase(activitySpec)
             }
-        } else
-            activities.each { activity ->
-                runLiquibase(activity)
+        } else {
+            activitySpecMap.get().values().each { activitySpec ->
+                runLiquibase(activitySpec)
             }
+        }
     }
 
     /**
      * Build the proper command line and call Liquibase.
      *
-     * @param activity the activity holding the Liquibase particulars.
+     * @param activitySpec the activity spec holding the Liquibase particulars.
      */
-    void runLiquibase(Activity activity) {
+    void runLiquibase(ActivitySpec activitySpec) {
         List<String> args = argumentBuilderService.get()
-                .buildLiquibaseArgs(activity, commandName.get(), commandArguments.get())
+                .buildLiquibaseArgs(activitySpec, commandName.get(), commandArguments.get())
 
         FileCollection classpath = liquibaseRuntimeConfigurationProvider.get()
         if ( classpath == null || classpath.isEmpty() ) {
@@ -160,7 +176,7 @@ Liquibase itself as a liquibaseRuntime dependency.")
         String mainCls = mainClass
                 .getOrElse("liquibase.integration.commandline.LiquibaseCommandLine")
         List<String> jvmArgsList = this.jvmArgsProvider.get()
-        logger.quiet("liquibase-plugin: Running the '${activity.name}' activity...")
+        logger.quiet("liquibase-plugin: Running the '${activitySpec.name}' activity...")
         logger.debug("liquibase-plugin: The ${mainCls} class will be used to run Liquibase")
         logger.debug(
                 "liquibase-plugin: Liquibase will be run with the following jvmArgs: ${jvmArgsList}")
