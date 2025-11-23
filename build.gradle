@@ -15,6 +15,9 @@ buildscript {
 // Apply the Plugin Publish plugin to make plugin publication possible.  The Plugin Publish plugin
 // will in turn auto-apply the Gradle Plugin Development Plugin (java-gradle-plugin) and the Maven
 // Publish plugin (maven-publish).
+plugins {
+    id "com.vanniktech.maven.publish" version "0.32.0"
+}
 apply plugin: "com.gradle.plugin-publish"
 apply plugin: "groovy"
 apply plugin: "signing"
@@ -26,15 +29,6 @@ targetCompatibility = 1.8
 group = "org.liquibase"
 archivesBaseName = "liquibase-gradle-plugin"
 version = liquibaseGradlePluginVersion
-ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-
-if ( isReleaseVersion ) {
-    println "using staging"
-    ext.mavenCentralUploadUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-} else {
-    println "using snapshot"
-    ext.mavenCentralUploadUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-}
 
 repositories {
     mavenLocal()
@@ -54,13 +48,13 @@ dependencies {
 
 task sourceJar(type: Jar) {
     description = "An archive of the source code for Maven Central"
-    classifier = "sources"
-    from sourceSets.main.allSource
+    archiveClassifier = "sources"
+    from sourceSets.main.groovy
 }
 
 task groovydocJar(type: Jar, dependsOn: groovydoc) {
     description = "An archive of the GroovyDocs for Maven Central"
-    classifier = "javadoc"
+    archiveClassifier = "javadoc"
     from groovydoc
 }
 
@@ -90,7 +84,6 @@ tasks.named("testClasses") {task ->
 }
 
 // Configure the plugin.  Note that the ID must match it's Gradle Plugin Portal id.
-// This will screw up Maven publishing, but we'll fix that later.
 gradlePlugin {
     website = "https://github.com/liquibase/liquibase-gradle-plugin"
     vcsUrl = "https://github.com/liquibase/liquibase-gradle-plugin.git"
@@ -105,108 +98,50 @@ gradlePlugin {
     }
 }
 
-// Configure the maven-publish plugin
-publishing {
-    publications {
-        liquibasePlugin(MavenPublication) {
-            from components.java
-//            artifact groovydocJar
-//            artifact sourceJar
-            pom {
-                name = "Gradle Liquibase Plugin"
-                description = "A Gradle plugin for running the Liquibase database upgrade tool."
-                url = "https://github.com/liquibase/liquibase-gradle-plugin"
-                packaging = "jar"
-                licenses {
-                    license {
-                        name = "The Apache Software License, Version 2.0"
-                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        id = "stevesaliman"
-                        name = "Steven C. Saliman"
-                        email = "support@saliman.net"
-                    }
-                }
-                scm {
-                    connection = "scm:https://liquibase@github.com/liquibase/liquibase-gradle-plugin"
-                    developerConnection = "scm:git@github.com:liquibase/liquibase-gradle-plugin.git"
-                    url = "https://github.com/liquibase/liquibase-gradle-plugin"
-                }
+// Configure the Vanniktech publishing plugin.
+mavenPublishing {
+    coordinates(group, archivesBaseName, liquibaseGradlePluginVersion)
+    signAllPublications()
+    // The vanniktech plugin is supposed to default to Maven Central, but as of 6/21/25, it still
+    // defaults to the old OSSRH site.
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    pom {
+        name = "Gradle Liquibase Plugin"
+        description = "A Gradle plugin for running the Liquibase database upgrade tool."
+        url = "https://github.com/liquibase/liquibase-gradle-plugin"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "http://www.apache.org/licenses/LICENSE-2.0.txt"
             }
-
         }
-    }
-
-    repositories {
-        maven {
-            url = mavenCentralUploadUrl
-            // We only need to mess with credentials if we're publishing...
-            if ( gradle.startParameter.taskNames.contains("publish") ) {
-                // Use Java's console to read from the console (no good for a CI environment)
-                def console = System.console()
-                console.printf "\n\nWe have to upload some things in this build...\n\n"
-
-                if ( !project.hasProperty("mavenCentralUsername") ) {
-                    def mavenCentralUsername = console.readLine("Maven Central Username: ")
-                    allprojects { ext."mavenCentralUsername" = mavenCentralUsername }
-                }
-
-                if ( !project.hasProperty("mavenCentralPassword") ) {
-                    def mavenCentralPassword = console.readLine("Maven Central Password: ")
-                    allprojects { ext."mavenCentralPassword" = mavenCentralPassword }
-                }
-                credentials {
-                    username mavenCentralUsername
-                    password mavenCentralPassword
-                }
+        developers {
+            developer {
+                id = "stevesaliman"
+                name = "Steven C. Saliman"
+                url = "https://github.com/stevesaliman/"
             }
+        }
+        scm {
+            url = "https://github.com/liquibase/liquibase-gradle-plugin"
+            connection = "scm:https://liquibase@github.com/liquibase/liquibase-gradle-plugin"
+            developerConnection = "scm:git@github.com:liquibase/liquibase-gradle-plugin.git"
         }
     }
 }
 
-signing {
-    sign publishing.publications.liquibasePlugin
-}
-
-// When we're ready to go, there are a couple of things we'll need to do before we execute anything.
-gradle.taskGraph.whenReady { taskGraph ->
-    // This is a rather nasty little hack.  When we apply java-gradle-plugin,  It creates some
-    // maven-publish tasks that conflict with the manual configuration - it tries to publish a
-    // org.liquibase.gradle artifact, which is wrong.  The quick and very dirty solution is to
-    // disable those tasks.
-
-    // Comment this to publish to Gradle and Maven Local.  Uncomment for Maven Central
-	// taskGraph.allTasks.findAll { it.name ==~ /.*MavenPublication.*/ }*.enabled = false
-
-    // Only *require* signing if we are uploading a release version.  If we do need to sign, make
-    // sure we've got the properties we need to do the signing.
-    if ( isReleaseVersion && taskGraph.hasTask(":publish") ) {
-        // Use Java's console to read from the console (no good for a CI environment)
-        def console = System.console()
-        console.printf "\n\nWe have to sign some things in this build...\n\n"
-
-        if ( !project.hasProperty("signing.keyId") ) {
-            def id = console.readLine("PGP Public Key Id: ")
-            allprojects { ext."signing.keyId" = id }
+// Disable PluginMarkerMaven uploads to any Maven repo (e.g., snapshots / Central)
+afterEvaluate {
+    tasks.withType(PublishToMavenRepository).configureEach { t ->
+        def pub = t.publication
+        if (pub instanceof MavenPublication && pub.name.endsWith('PluginMarkerMaven')) {
+            t.enabled = false
+            println("Disabled ${t.name} for ${pub.groupId}:${pub.artifactId}")
+            logger.lifecycle("Disabled ${t.name} for ${pub.groupId}:${pub.artifactId}")
         }
-
-        if ( !project.hasProperty("signing.secretKeyRingFile") ) {
-            def file = console.readLine("PGP Secret Key Ring File (absolute path): ")
-            allprojects { ext."signing.secretKeyRingFile" = file }
-        }
-
-        if ( !project.hasProperty("signing.password") ) {
-            def password = console.readPassword("PGP Private Key Password: ")
-            allprojects { ext."signing.password" = password }
-        }
-
-        console.printf "\nThanks.\n\n"
-    } else {
-        tasks.withType(org.gradle.plugins.signing.Sign).all {
-            it.enabled = false
-        }
+    }
+    publishing.publications.withType(MavenPublication).all {
+        println "publication '$name' -> $groupId:$artifactId:$version"
     }
 }
