@@ -15,14 +15,16 @@
 package org.liquibase.gradle
 
 import org.gradle.api.Task
+import org.gradle.api.file.FileCollection
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskAction
 
 import static org.liquibase.gradle.Util.versionAtLeast
-
 /**
  * Gradle task that calls Liquibase to run a command.
  * <p>
@@ -46,8 +48,23 @@ class LiquibaseTask extends JavaExec {
     @Internal
     ArgumentBuilder argumentBuilder
 
+    @Internal
+    final Property<ProjectInfo> projectInfo
+    
+    @Internal
+    final Property<LiquibaseInfo> liquibaseInfo
+
+    @Classpath
+    FileCollection classPath
+
     /** a {@code Provider} that can provide a value for the liquibase version. */
     private Provider<String> liquibaseVersionProvider
+
+    LiquibaseTask() {
+        projectInfo = project.objects.property(ProjectInfo)
+        liquibaseInfo = project.objects.property(LiquibaseInfo)
+        classPath = project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION)
+    }
 
     /**
      * Do the work of this task.
@@ -55,9 +72,9 @@ class LiquibaseTask extends JavaExec {
     @TaskAction
     @Override
     void exec() {
-
-        def activities = project.liquibase.activities
-        def runList = project.liquibase.runList
+        def projectInfo = this.projectInfo.get()
+        def activities = projectInfo.activities
+        def runList = projectInfo.runList
 
         if ( activities == null || activities.size() == 0 ) {
             throw new LiquibaseConfigurationException("No activities defined.  Did you forget to add a 'liquibase' block to your build.gradle file?")
@@ -84,22 +101,22 @@ class LiquibaseTask extends JavaExec {
      * @param activity the activity holding the Liquibase particulars.
      */
     def runLiquibase(activity) {
-
-        def args = argumentBuilder.buildLiquibaseArgs(activity, commandName, commandArguments)
+        def projectInfo = projectInfo.get()
+        def liquibaseInfo = this.liquibaseInfo.get()
+        def args = argumentBuilder.buildLiquibaseArgs(activity, commandName, commandArguments, liquibaseInfo)
         setArgs(args)
 
-        def classpath = project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION)
-        if ( classpath == null || classpath.isEmpty() ) {
+        if ( classPath == null || classPath.isEmpty() ) {
             throw new LiquibaseConfigurationException("No liquibaseRuntime dependencies were defined.  You must at least add Liquibase itself as a liquibaseRuntime dependency.")
         }
-        setClasspath(classpath)
+        setClasspath(classPath)
         // "inherit" the system properties from the Gradle JVM.
         systemProperties System.properties
         println "liquibase-plugin: Running the '${activity.name}' activity..."
-        project.logger.debug("liquibase-plugin: The ${mainClass.get()} class will be used to run Liquibase")
-        project.logger.debug("liquibase-plugin: Liquibase will be run with the following jvmArgs: ${project.liquibase.jvmArgs}")
-        jvmArgs(project.liquibase.jvmArgs)
-        project.logger.debug("liquibase-plugin: Running 'liquibase ${args.join(" ")}'")
+        logger.debug("liquibase-plugin: The ${mainClass.get()} class will be used to run Liquibase")
+        logger.debug("liquibase-plugin: Liquibase will be run with the following jvmArgs: ${projectInfo.jvmArgs}")
+        jvmArgs(projectInfo.jvmArgs)
+        logger.debug("liquibase-plugin: Running 'liquibase ${args.join(" ")}'")
         super.exec()
     }
 
@@ -115,8 +132,17 @@ class LiquibaseTask extends JavaExec {
     Task configure(Closure closure) {
         this.liquibaseVersionProvider = createLiquibaseVersionProvider()
         mainClass.set(createMainClassProvider(this.liquibaseVersionProvider))
+        def configProject = project
+        projectInfo.set(project.provider {
+             ProjectInfo.fromProject(configProject)
+        })
+        liquibaseInfo.set(project.provider {
+             LiquibaseInfo.fromProject(configProject)
+        })
         return super.configure(closure)
     }
+    
+
 
     /**
      * Create a {@code Provider} that can return the the main class to be used when running
