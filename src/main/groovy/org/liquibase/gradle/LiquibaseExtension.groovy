@@ -50,6 +50,7 @@ class LiquibaseExtension {
         this.activities = activities
     }
 
+    @SuppressWarnings('unused')
     def activities(Closure closure) {
         activities.configure(closure)
     }

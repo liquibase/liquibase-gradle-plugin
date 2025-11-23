@@ -2,7 +2,11 @@ Changes for 3.0.3
 =================
 
 - Updated to Gradle 8.6 and replaced the maven publisher with vanniktech's maven publisher to be
-  compatible with Sonatype's new publishing model. 
+  compatible with Sonatype's new publishing model.
+
+- Made the plugin compatable with Gradle's
+  [Configuration Cache](https://docs.gradle.org/current/userguide/configuration_cache.html) with
+  thinks to @Nouran-11 and @abstratt.  Resolves #166 and #176
 
 Changes for 3.0.2
 =================

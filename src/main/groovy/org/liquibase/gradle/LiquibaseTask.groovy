@@ -48,21 +48,28 @@ class LiquibaseTask extends JavaExec {
     @Internal
     ArgumentBuilder argumentBuilder
 
+    /** The {@link RunInfo} property we can use at execution time to get information about this run */
+    @Internal
+    final Property<RunInfo> runInfo
+
+    /** The {@link ProjectInfo} property we can use at execution time to get information about the project */
     @Internal
     final Property<ProjectInfo> projectInfo
-    
-    @Internal
-    final Property<LiquibaseInfo> liquibaseInfo
 
+    /** The classpath to use during execution */
     @Classpath
     FileCollection classPath
 
     /** a {@code Provider} that can provide a value for the liquibase version. */
     private Provider<String> liquibaseVersionProvider
 
+    /**
+     * Initializing constructor.  Sets up our runInfo and projectInfo in a way that is compatible
+     * with the Gradle Configuration Cache
+     */
     LiquibaseTask() {
+        runInfo = project.objects.property(RunInfo)
         projectInfo = project.objects.property(ProjectInfo)
-        liquibaseInfo = project.objects.property(LiquibaseInfo)
         classPath = project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION)
     }
 
@@ -72,9 +79,10 @@ class LiquibaseTask extends JavaExec {
     @TaskAction
     @Override
     void exec() {
-        def projectInfo = this.projectInfo.get()
-        def activities = projectInfo.activities
-        def runList = projectInfo.runList
+        // Start by figuring out what to run in this execution
+        def runInfo = this.runInfo.get()
+        def activities = runInfo.activities
+        def runList = runInfo.runList
 
         if ( activities == null || activities.size() == 0 ) {
             throw new LiquibaseConfigurationException("No activities defined.  Did you forget to add a 'liquibase' block to your build.gradle file?")
@@ -101,9 +109,9 @@ class LiquibaseTask extends JavaExec {
      * @param activity the activity holding the Liquibase particulars.
      */
     def runLiquibase(activity) {
-        def projectInfo = projectInfo.get()
-        def liquibaseInfo = this.liquibaseInfo.get()
-        def args = argumentBuilder.buildLiquibaseArgs(activity, commandName, commandArguments, liquibaseInfo)
+        def runInfo = this.runInfo.get()
+        def projectInfo = this.projectInfo.get()
+        def args = argumentBuilder.buildLiquibaseArgs(activity, commandName, commandArguments, projectInfo)
         setArgs(args)
 
         if ( classPath == null || classPath.isEmpty() ) {
@@ -114,8 +122,8 @@ class LiquibaseTask extends JavaExec {
         systemProperties System.properties
         println "liquibase-plugin: Running the '${activity.name}' activity..."
         logger.debug("liquibase-plugin: The ${mainClass.get()} class will be used to run Liquibase")
-        logger.debug("liquibase-plugin: Liquibase will be run with the following jvmArgs: ${projectInfo.jvmArgs}")
-        jvmArgs(projectInfo.jvmArgs)
+        logger.debug("liquibase-plugin: Liquibase will be run with the following jvmArgs: ${runInfo.jvmArgs}")
+        jvmArgs(runInfo.jvmArgs)
         logger.debug("liquibase-plugin: Running 'liquibase ${args.join(" ")}'")
         super.exec()
     }
@@ -133,15 +141,15 @@ class LiquibaseTask extends JavaExec {
         this.liquibaseVersionProvider = createLiquibaseVersionProvider()
         mainClass.set(createMainClassProvider(this.liquibaseVersionProvider))
         def configProject = project
+        runInfo.set(project.provider {
+             RunInfo.fromProject(configProject)
+        })
         projectInfo.set(project.provider {
              ProjectInfo.fromProject(configProject)
         })
-        liquibaseInfo.set(project.provider {
-             LiquibaseInfo.fromProject(configProject)
-        })
         return super.configure(closure)
     }
-    
+
 
 
     /**

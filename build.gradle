@@ -58,10 +58,10 @@ task groovydocJar(type: Jar, dependsOn: groovydoc) {
     from groovydoc
 }
 
-// By default, TestKit uses the classpath
-// at build/pluginUnderTestMetadata/plugin-under-test-metadata.properties,
-// which does not include test classpath. This action generates a file that serves a similar
-// purpose as plugin-under-test-metadata.properties, but based on the test classpath.
+// By default, TestKit uses the classpath at
+// build/pluginUnderTestMetadata/plugin-under-test-metadata.properties, which does not include test
+// classpath. This action generates a file that serves a similar purpose as
+// plugin-under-test-metadata.properties, but based on the test classpath.
 tasks.named("testClasses") {task ->
     doFirst {
         // Record test classpath so we can use it for our TestKit tests
@@ -83,7 +83,7 @@ tasks.named("testClasses") {task ->
     }
 }
 
-// Configure the plugin.  Note that the ID must match it's Gradle Plugin Portal id.
+// Configure the Gradle Portal plugin.  Note that the ID must match it's Gradle Plugin Portal id.
 gradlePlugin {
     website = "https://github.com/liquibase/liquibase-gradle-plugin"
     vcsUrl = "https://github.com/liquibase/liquibase-gradle-plugin.git"

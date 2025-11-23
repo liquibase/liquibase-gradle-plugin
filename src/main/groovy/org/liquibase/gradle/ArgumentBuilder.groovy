@@ -98,10 +98,11 @@ class ArgumentBuilder {
      * @param activity the activity being run, which contains global and command parameters.
      * @param commandName the name of the liquibase command being run.
      * @param supportedCommandArguments the command arguments supported by the command being run.
-     * @param liquibaseInfo the liquibase information containing logger, build directory, and liquibase properties.
+     * @param projectInfo the project information with the logger, build directory, and liquibase
+     *         related project properties.
      * @return the argument string to pass to liquibase when we invoke it.
      */
-    def buildLiquibaseArgs(Activity activity, commandName, supportedCommandArguments, LiquibaseInfo liquibaseInfo) {
+    def buildLiquibaseArgs(Activity activity, commandName, supportedCommandArguments, ProjectInfo projectInfo) {
         // This is what we'll ultimately return.
         def liquibaseArgs = []
 
@@ -111,14 +112,14 @@ class ArgumentBuilder {
         def sendingChangelog = false
 
         if ( allGlobalArguments.contains("integrationName") ) {
-            liquibaseInfo.logger.debug("liquibase-plugin:    Adding --integration-name parameter because Liquibase supports it")
+            projectInfo.logger.debug("liquibase-plugin:    Adding --integration-name parameter because Liquibase supports it")
             globalArgs += argumentString("integrationName", "gradle")
         }
 
         // Create a merged map of activity arguments and arguments given as Gradle properties, then
         // process each of the arguments from the map, figuring out what kind of argument each one
         // is and responding accordingly.
-        createArgumentMap(activity.arguments, liquibaseInfo).each {
+        createArgumentMap(activity.arguments, projectInfo).each {
             def argumentName = it.key
             if ( allGlobalArguments.contains(argumentName) ) {
                 // We're dealing with global arg.
@@ -143,7 +144,7 @@ class ArgumentBuilder {
             } else {
                 // If nothing matched above, then we had a command argument that was not supported
                 // by the command being run.
-                liquibaseInfo.logger.debug("skipping the ${argumentName} command argument because it is not supported by the ${commandName} command")
+                projectInfo.logger.debug("skipping the ${argumentName} command argument because it is not supported by the ${commandName} command")
             }
         }
 
@@ -151,7 +152,7 @@ class ArgumentBuilder {
         // command arguments, add it here.  The db-doc command is the only one that has a default
         // value.
         if ( commandName == "dbDoc" && !commandArguments.any {it.startsWith("--output-directory") } ) {
-            commandArguments += "--output-directory=${liquibaseInfo.buildDir}/database/docs"
+            commandArguments += "--output-directory=${projectInfo.buildDir}/database/docs"
         }
 
         // Now build our final argument array in the following order:
@@ -163,7 +164,7 @@ class ArgumentBuilder {
         // to put the -D arguments after the command.  If we put them before the command, they are
         // ignored
         if ( sendingChangelog ) {
-            def changelogParamMap = createChangelogParamMap(activity, liquibaseInfo)
+            def changelogParamMap = createChangelogParamMap(activity, projectInfo)
             changelogParamMap.each { liquibaseArgs += "-D${it.key}=${it.value}" }
 
         }
@@ -199,23 +200,23 @@ class ArgumentBuilder {
      * itself.
      *
      * @param arguments the arguments from the activity
-     * @param liquibaseInfo the liquibase information, from which we'll get the extra arguments.
+     * @param projectInfo the project information, from which we'll get the extra arguments.
      * @return a map of argument names and their values.
      */
-    private createArgumentMap(arguments, LiquibaseInfo liquibaseInfo) {
+    private createArgumentMap(arguments, ProjectInfo projectInfo) {
         def argumentMap = [:]
         // Start with the activity's arguments
         arguments.each {
             // We'll handle changelog parameters later.
             if ( it.key != "changelogParameters" ) {
-                liquibaseInfo.logger.trace("liquibase-plugin:    Setting ${it.key}=${it.value} from activities")
+                projectInfo.logger.trace("liquibase-plugin:    Setting ${it.key}=${it.value} from activities")
                 argumentMap.put(it.key, it.value)
             }
         }
 
         // Now go through all of the Gradle properties that start with "liquibase" and use them
         // to override/add to the arguments, ignoring the ones Liquibase won't recognize.
-        liquibaseInfo.liquibaseProperties.findAll { key, value ->
+        projectInfo.liquibaseProperties.findAll { key, value ->
             if ( !allGlobalProperties.contains(key) && !allCommandProperties.contains(key) ) {
                 return false
             }
@@ -228,7 +229,7 @@ class ArgumentBuilder {
         }.each { key, value ->
             def argName = key - "liquibase"
             argName = argName.uncapitalize()
-            liquibaseInfo.logger.trace("liquibase-plugin:    Setting ${argName}=${value} from the command line")
+            projectInfo.logger.trace("liquibase-plugin:    Setting ${argName}=${value} from the command line")
             argumentMap.put(argName, value)
         }
 
@@ -247,25 +248,25 @@ class ArgumentBuilder {
      * in the activity.
      *
      * @param arguments the arguments from the activity
-     * @param liquibaseInfo the liquibase information, from which we'll get the extra arguments.
+     * @param projectInfo the project information, from which we'll get the extra arguments.
      * @return a map of parameter names and their values.
      */
-    private createChangelogParamMap(activity, LiquibaseInfo liquibaseInfo) {
+    private createChangelogParamMap(activity, ProjectInfo projectInfo) {
         def changelogParameters = [:]
 
         // Start by adding parameters from the activity
         activity.changelogParameters.each {
-            liquibaseInfo.logger.trace("liquibase-plugin:    Adding activity changelogParameter ${it.key}=${it.value}")
+            projectInfo.logger.trace("liquibase-plugin:    Adding activity changelogParameter ${it.key}=${it.value}")
             changelogParameters.put(it.key, it.value)
         }
 
-        // Override/add to the map with liquibaseInfo properties
-        if ( !liquibaseInfo.liquibaseProperties.containsKey("liquibaseChangelogParameters") ) {
+        // Override/add to the map with projectInfo properties
+        if ( !projectInfo.liquibaseProperties.containsKey("liquibaseChangelogParameters") ) {
             return changelogParameters
         }
-        liquibaseInfo.liquibaseProperties.get("liquibaseChangelogParameters").split(",").each {
+        projectInfo.liquibaseProperties.get("liquibaseChangelogParameters").split(",").each {
             def (key, value) = it.split("=")
-            liquibaseInfo.logger.trace("liquibase-plugin:    Adding property changelogParameter ${key}=${value}")
+            projectInfo.logger.trace("liquibase-plugin:    Adding property changelogParameter ${key}=${value}")
             changelogParameters.put(key, value)
         }
         return changelogParameters
