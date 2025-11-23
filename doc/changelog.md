@@ -1,3 +1,9 @@
+Changes for 3.0.3
+=================
+
+- Updated to Gradle 8.6 and replaced the maven publisher with vanniktech's maven publisher to be
+  compatible with Sonatype's new publishing model. 
+
 Changes for 3.0.2
 =================
 

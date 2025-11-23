@@ -66,12 +66,12 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath 'org.liquibase:liquibase-core:4.26.1'
+    classpath 'org.liquibase:liquibase-core:4.31.1'
   }
 }
 dependencies {
-  liquibaseRuntime 'org.liquibase:liquibase-core:4.26.1'
-  liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:3.0.2'
+  liquibaseRuntime 'org.liquibase:liquibase-core:4.31.1'
+  liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:4.0.1'
   liquibaseRuntime 'info.picocli:picocli:4.6.1'
   liquibaseRuntime 'mysql:mysql-connector-java:5.1.34'
 }
