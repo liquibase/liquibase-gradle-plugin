@@ -91,6 +91,19 @@ class ArgumentBuilder {
     }
 
     /**
+     * Little helper method to "fix" a global argument.  Many of the argument names, as Liquibase
+     * gives them to us, start with "liquibase.".  We want to remove that prefix.  We also want to
+     * remove dots and change what follows a dot to be capitalized.  For example, "sql.showSql"
+     * will become "sqlShowSql".
+     *
+     * @param arg the argument to fix.
+     * @return the fixed arg.
+     */
+    private fixGlobalArgument(arg) {
+        return (arg - "liquibase.").replaceAll("(\\.)([A-Za-z0-9])", { Object[] it -> it[2].toUpperCase() })
+    }
+
+    /**
      * Build arguments, in the right order, to pass to Liquibase.  Note that all the argument sets
      * must have already been initialized.  We can't ask Liquibase for anything because we'll be
      * using a different classpath at execution time.
@@ -98,8 +111,8 @@ class ArgumentBuilder {
      * @param activity the activity being run, which contains global and command parameters.
      * @param commandName the name of the liquibase command being run.
      * @param supportedCommandArguments the command arguments supported by the command being run.
-     * @param projectInfo the project information with the logger, build directory, and liquibase
-     *         related project properties.
+     * @param projectInfo the project information with the logger, build directory. and liquibase
+     *         related properties.
      * @return the argument string to pass to liquibase when we invoke it.
      */
     def buildLiquibaseArgs(Activity activity, commandName, supportedCommandArguments, ProjectInfo projectInfo) {
@@ -170,19 +183,6 @@ class ArgumentBuilder {
         }
 
         return liquibaseArgs
-    }
-
-    /**
-     * Little helper method to "fix" a global argument.  Many of the argument names, as Liquibase
-     * gives them to us, start with "liquibase.".  We want to remove that prefix.  We also want to
-     * remove dots and change what follows a dot to be capitalized.  For example, "sql.showSql"
-     * will become "sqlShowSql".
-     *
-     * @param arg the argument to fix.
-     * @return the fixed arg.
-     */
-    private fixGlobalArgument(arg) {
-        return (arg - "liquibase.").replaceAll("(\\.)([A-Za-z0-9])", { Object[] it -> it[2].toUpperCase() })
     }
 
     /**

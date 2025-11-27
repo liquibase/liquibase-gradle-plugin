@@ -437,6 +437,6 @@ class ArgumentBuilderTest {
     }
 
     protected List<Object> buildLiquibaseArgs() {
-        return argumentBuilder.buildLiquibaseArgs(activity, command.name[0], argumentsForCommand(command), ProjectInfo.fromProject(project))
+        return argumentBuilder.buildLiquibaseArgs(activity, command.name[0], argumentsForCommand(command), new ProjectInfo(project))
     }
 }
