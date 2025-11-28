@@ -5,19 +5,18 @@ import liquibase.command.CommandDefinition
 import liquibase.command.CommandFactory
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class LiquibasePluginTest {
     Project project
 
-    @Before
+    @BeforeEach
     void setUp() {
         project = ProjectBuilder.builder().build()
     }
@@ -30,21 +29,21 @@ class LiquibasePluginTest {
     @Test
     void applyPluginByType() {
         project.apply plugin: org.liquibase.gradle.LiquibasePlugin
-        assertTrue("Project is missing plugin", project.plugins.hasPlugin(LiquibasePlugin))
+        assertTrue(project.plugins.hasPlugin(LiquibasePlugin), "Project is missing plugin")
         project.repositories.configure { mavenCentral() }
         project.dependencies.add(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION, "org.liquibase:liquibase-core:4.4.0")
         // the tag task takes an arg...
         def task = project.tasks.findByName('tag')
-        assertNotNull("Project is missing tag task", task)
-        assertTrue("tag task is the wrong type", task instanceof LiquibaseTask)
-        assertTrue("tag task should be enabled", task.enabled)
-        assertEquals("tag task has the wrong command", "tag", task.commandName)
+        assertNotNull(task, "Project is missing tag task")
+        assertTrue(task instanceof LiquibaseTask, "tag task is the wrong type")
+        assertTrue(task.enabled, "tag task should be enabled")
+        assertEquals("tag", task.commandName, "tag task has the wrong command")
         // and the update task does not.
         task = project.tasks.findByName('update')
-        assertNotNull("Project is missing update task", task)
-        assertTrue("update task is the wrong type", task instanceof LiquibaseTask)
-        assertTrue("update task should be enabled", task.enabled)
-        assertEquals("update task has the wrong command", "update", task.commandName)
+        assertNotNull(task, "Project is missing update task")
+        assertTrue(task instanceof LiquibaseTask, "update task is the wrong type")
+        assertTrue(task.enabled, "update task should be enabled")
+        assertEquals("update", task.commandName, "update task has the wrong command")
     }
 
     /**
@@ -54,21 +53,21 @@ class LiquibasePluginTest {
     @Test
     void applyPluginByName() {
         project.apply plugin: 'org.liquibase.gradle'
-        assertTrue("Project is missing plugin", project.plugins.hasPlugin(LiquibasePlugin))
+        assertTrue(project.plugins.hasPlugin(LiquibasePlugin), "Project is missing plugin")
         project.repositories.configure { mavenCentral() }
         project.dependencies.add(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION, "org.liquibase:liquibase-core:4.4.0")
         // the tag task takes an arg...
         def task = project.tasks.findByName('tag')
-        assertNotNull("Project is missing tag task", task)
-        assertTrue("tag task is the wrong type", task instanceof LiquibaseTask)
-        assertTrue("tag task should be enabled", task.enabled)
-        assertEquals("tag task has the wrong command", "tag", task.commandName)
+        assertNotNull(task, "Project is missing tag task")
+        assertTrue(task instanceof LiquibaseTask, "tag task is the wrong type")
+        assertTrue(task.enabled, "tag task should be enabled")
+        assertEquals("tag", task.commandName, "tag task has the wrong command")
         // and the update task does not.
         task = project.tasks.findByName('update')
-        assertNotNull("Project is missing update task", task)
-        assertTrue("update task is the wrong type", task instanceof LiquibaseTask)
-        assertTrue("update task should be enabled", task.enabled)
-        assertEquals("update task has the wrong command", "update", task.commandName)
+        assertNotNull(task, "Project is missing update task")
+        assertTrue(task instanceof LiquibaseTask, "update task is the wrong type")
+        assertTrue(task.enabled, "update task should be enabled")
+        assertEquals("update", task.commandName, "update task has the wrong command")
     }
 
     /**
@@ -81,28 +80,28 @@ class LiquibasePluginTest {
     void applyPluginByNameWithPrefix() {
         project.ext.liquibaseTaskPrefix = 'liquibase'
         project.apply plugin: 'org.liquibase.gradle'
-        assertTrue("Project is missing plugin", project.plugins.hasPlugin(LiquibasePlugin))
+        assertTrue(project.plugins.hasPlugin(LiquibasePlugin), "Project is missing plugin")
         project.repositories.configure { mavenCentral() }
         project.dependencies.add(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION, "org.liquibase:liquibase-core:4.4.0")
         // the tag task takes an arg...
         def task = project.tasks.findByName('liquibaseTag')
-        assertNotNull("Project is missing tag task", task)
-        assertTrue("tag task is the wrong type", task instanceof LiquibaseTask)
-        assertTrue("tag task should be enabled", task.enabled)
-        assertEquals("tag task has the wrong command", "tag", task.commandName)
+        assertNotNull(task, "Project is missing tag task")
+        assertTrue(task instanceof LiquibaseTask, "tag task is the wrong type")
+        assertTrue(task.enabled, "tag task should be enabled")
+        assertEquals("tag", task.commandName, "tag task has the wrong command")
         // and the update task does not.
         task = project.tasks.findByName('liquibaseUpdate')
-        assertNotNull("Project is missing update task", task)
-        assertTrue("update task is the wrong type", task instanceof LiquibaseTask)
-        assertTrue("update task should be enabled", task.enabled)
-        assertEquals("update task has the wrong command", "update", task.commandName)
+        assertNotNull(task, "Project is missing update task")
+        assertTrue(task instanceof LiquibaseTask, "update task is the wrong type")
+        assertTrue(task.enabled, "update task should be enabled")
+        assertEquals("update", task.commandName, "update task has the wrong command")
 
         // Make sure the standard tasks didn't get created, since we created them with different
         // names.
         task = project.tasks.findByName('tag')
-        assertNull("We shouldn't have a tag task", task)
+        assertNull(task, "We shouldn't have a tag task")
         task = project.tasks.findByName('update')
-        assertNull("We shouldn't have an update task", task)
+        assertNull(task, "We shouldn't have an update task")
     }
 
     @Test

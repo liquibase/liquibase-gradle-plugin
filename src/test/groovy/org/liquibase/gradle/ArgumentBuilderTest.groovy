@@ -5,10 +5,10 @@ import liquibase.command.CommandDefinition
 import liquibase.command.CommandFactory
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import static org.junit.Assert.assertEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.liquibase.gradle.Util.argumentsForCommand
 
 /**
@@ -25,7 +25,7 @@ class ArgumentBuilderTest {
     Project project
     ArgumentBuilder argumentBuilder
 
-    @Before
+    @BeforeEach
     void setUp() {
         // Set up a command that supports our standard database arguments.  We use status because it
         // supports a boolean argument with an optional value (--verbose)
@@ -124,7 +124,7 @@ class ArgumentBuilderTest {
         ]
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments", expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
     }
 
     /**
@@ -168,8 +168,8 @@ class ArgumentBuilderTest {
 
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments.  Did we forget to filter out the changelog parms when not using changelog-file?",
-                expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "),
+                "Wrong arguments.  Did we forget to filter out the changelog parms when not using changelog-file?")
     }
 
     /**
@@ -209,8 +209,8 @@ class ArgumentBuilderTest {
         ]
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments.  Did we forget to filter out the changelog and changelog parms with drop-all?",
-                expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "),
+                "Wrong arguments.  Did we forget to filter out the changelog and changelog parms with drop-all?")
     }
 
     /**
@@ -257,8 +257,8 @@ class ArgumentBuilderTest {
         ]
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments.  Did we use the default value for output-dir with db-doc?",
-                expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "),
+                "Wrong arguments.  Did we use the default value for output-dir with db-doc?")
     }
 
     /**
@@ -301,7 +301,7 @@ class ArgumentBuilderTest {
         ]
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments", expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
     }
 
     /**
@@ -334,7 +334,7 @@ class ArgumentBuilderTest {
         ]
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments", expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
     }
 
     /**
@@ -374,7 +374,7 @@ class ArgumentBuilderTest {
         actualArgs = buildLiquibaseArgs()
         argumentBuilder.allGlobalArguments.remove("integrationName")
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments", expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
     }
 
     /**
@@ -413,7 +413,7 @@ class ArgumentBuilderTest {
         ]
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments", expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
     }
 
     /**
@@ -433,7 +433,7 @@ class ArgumentBuilderTest {
         ]
         actualArgs = buildLiquibaseArgs()
         // For some reason, comparing arrays, doesn't work right, so join into single strings.
-        assertEquals("Wrong arguments", expectedArgs.join(" "),  actualArgs.join(" "))
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
     }
 
     protected List<Object> buildLiquibaseArgs() {

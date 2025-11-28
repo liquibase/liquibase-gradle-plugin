@@ -1,19 +1,20 @@
 package org.liquibase.gradle
 
 import org.gradle.testkit.runner.GradleRunner
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 
-import static org.junit.Assert.assertTrue
+import java.nio.file.Path
+
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class ConfigurationCacheSpec {
-    @Rule
-    public TemporaryFolder testProjectDir = new TemporaryFolder()
+    @TempDir
+    public Path testProjectDir
 
     @Test
     void pluginShouldBeCompatibleWithConfigurationCache() {
-        def projectDir = testProjectDir.root
+        def projectDir = testProjectDir.toFile()
         def changelogFile = new File(projectDir, "changelog.yml")
         def buildFile = new File(projectDir, "build.gradle")
         buildFile.text = """

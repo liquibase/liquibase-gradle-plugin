@@ -70,9 +70,6 @@ class LiquibaseTask extends DefaultTask {
     /** ProviderFactory for building Providers without accessing Project at execution time. */
     private ProviderFactory providerFactory
 
-    /** a {@code Provider} that can provide a value for the liquibase version. */
-    private Provider<String> iquibaseVersionProvider
-
     /**
      * Initializing constructor.  Sets up our liquibaseInfo and projectInfo in a way that is
      * compatible with the Gradle Configuration Cache

@@ -2,12 +2,11 @@ package org.liquibase.gradle
 
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 /**
  * Unit tests to make sure we create LiquibaseInfo correctly
@@ -17,7 +16,7 @@ import static org.junit.Assert.fail
 class LiquibaseInfoTest {
     Project project
 
-    @Before
+    @BeforeEach
     void setUp() {
         project = ProjectBuilder.builder().build()
     }
@@ -29,8 +28,8 @@ class LiquibaseInfoTest {
     @Test
     void checkVersionDetectionLiquibase44Plus() {
         def liquibaseInfo = configureForVersion("4.4.0")
-        assertEquals("The plugin set the wrong main class name for Liquibase 4.4+",
-                "liquibase.integration.commandline.LiquibaseCommandLine", liquibaseInfo.mainClass)
+        assertEquals("liquibase.integration.commandline.LiquibaseCommandLine", liquibaseInfo.mainClass,
+                "The plugin set the wrong main class name for Liquibase 4.4+")
     }
 
     /**
@@ -42,8 +41,8 @@ class LiquibaseInfoTest {
         try {
             configureForVersion("4.3.0")
         } catch (Exception e) {
-            assertTrue("Wrong Exception when Liquibase <4.4 is in the class path",
-                    e instanceof LiquibaseConfigurationException)
+            assertTrue(e instanceof LiquibaseConfigurationException,
+                    "Wrong Exception when Liquibase <4.4 is in the class path")
         }
     }
 
@@ -56,8 +55,8 @@ class LiquibaseInfoTest {
         def liquibaseInfo = configureForVersion("4.3.0") {
             (it.extensions.liquibase as LiquibaseExtension).mainClassName = "com.example.CustomMain"
         }
-        assertEquals("The plugin failed to set the user's specified main class",
-                "com.example.CustomMain", liquibaseInfo.mainClass)
+        assertEquals("com.example.CustomMain", liquibaseInfo.mainClass,
+                "The plugin failed to set the user's specified main class")
     }
 
     /**
@@ -72,8 +71,8 @@ class LiquibaseInfoTest {
             // The provider looking for Liquibase will throw an
             // AbstractProperty$PropertyQueryException that should be wrapping the
             // LiquibaseConfigurationException that the plugin throws.  Does it?
-            assertTrue("Wrong Exception when Liquibase is not in the class path",
-                    e instanceof LiquibaseConfigurationException)
+            assertTrue(e instanceof LiquibaseConfigurationException,
+                    "Wrong Exception when Liquibase is not in the class path")
         }
     }
 
@@ -88,7 +87,7 @@ class LiquibaseInfoTest {
      */
     private LiquibaseInfo configureForVersion(String version, Closure closure = {}) {
         project.apply plugin: 'org.liquibase.gradle'
-        assertTrue("Project is missing plugin", project.plugins.hasPlugin(LiquibasePlugin))
+        assertTrue(project.plugins.hasPlugin(LiquibasePlugin), "Project is missing plugin")
         if ( version != null ) {
             project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION) {
                 dependencies.add(

@@ -42,17 +42,20 @@ dependencies {
     compileOnly "org.liquibase:liquibase-core:${liquibaseCoreVersion}"
     // implementation "org.liquibase:liquibase-standard:${liquibaseCoreVersion}"
     testImplementation "org.liquibase:liquibase-core:${liquibaseCoreVersion}"
-    testImplementation "junit:junit:${junitVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"
     testImplementation gradleTestKit()
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
 }
 
-task sourceJar(type: Jar) {
+tasks.register('sourceJar', Jar) {
     description = "An archive of the source code for Maven Central"
     archiveClassifier = "sources"
     from sourceSets.main.groovy
 }
 
-task groovydocJar(type: Jar, dependsOn: groovydoc) {
+tasks.register('groovydocJar', Jar) {
+    dependsOn groovydoc
     description = "An archive of the GroovyDocs for Maven Central"
     archiveClassifier = "javadoc"
     from groovydoc
@@ -82,6 +85,9 @@ tasks.named("testClasses") {task ->
         }
     }
 }
+
+// Use JUnit Platform for tests
+tasks.withType(Test).configureEach { useJUnitPlatform() }
 
 // Configure the Gradle Portal plugin.  Note that the ID must match it's Gradle Plugin Portal id.
 gradlePlugin {
