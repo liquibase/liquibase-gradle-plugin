@@ -96,6 +96,6 @@ class ConfigurationCacheSpec {
             props.load(it)
         }
         def testClasspathProperty = "test-classpath"
-        return props.get(testClasspathProperty).split(":").collect { new File(it) }
+        return props.get(testClasspathProperty).split(File.pathSeparator).collect { new File(it) }
     }
 }

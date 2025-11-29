@@ -15,10 +15,8 @@
 package org.liquibase.gradle
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.Task
 import org.gradle.api.file.FileCollection
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
@@ -81,18 +79,8 @@ class LiquibaseTask extends DefaultTask {
         liquibaseInfo = project.objects.property(LiquibaseInfo)
         projectInfo = project.objects.property(ProjectInfo)
         classPath = project.configurations.getByName(LiquibasePlugin.LIQUIBASE_RUNTIME_CONFIGURATION)
-    }
-
-    /**
-     * Set up the project info and liquibase info properties during task configuration.  Each will
-     * be set up with provider closures that make the actual objects at execution time, but in a
-     * configuration-cache safe way.
-     *
-     * @param closure
-     * @return
-     */
-    @Override
-    Task configure(Closure closure) {
+        // initialize the project and liquibase info properties with closures that can provide
+        // values at execution time in a configuration-cache safe way.
         def configProject = project
         projectInfo.set(project.provider {
             new ProjectInfo(configProject)
@@ -100,7 +88,6 @@ class LiquibaseTask extends DefaultTask {
         liquibaseInfo.set(project.provider {
             new LiquibaseInfo(configProject)
         })
-        return super.configure(closure)
     }
 
     /**
