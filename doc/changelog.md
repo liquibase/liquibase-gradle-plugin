@@ -6,7 +6,7 @@ Changes for 3.1.0
 
 - Made the plugin compatible with Gradle's
   [Configuration Cache](https://docs.gradle.org/current/userguide/configuration_cache.html) with
-  thinks to @Nouran-11 and @abstratt.  Resolves #166 and #176
+  thanks to @Nouran-11 and @abstratt.  Resolves #166 and #176
 
 - Made the plugin compatible with Gradle 9, with thanks to Alexander Zhukau (@zhukau).  Resolves
   #173 and #177

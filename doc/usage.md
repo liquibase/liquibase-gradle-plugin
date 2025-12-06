@@ -17,7 +17,7 @@ To include the plugin into Gradle builds, simply add the following to your build
 
 ```groovy
 plugins {
-  id 'org.liquibase.gradle' version '3.0.2'
+  id 'org.liquibase.gradle' version '3.1.0'
 }
 ```
 
@@ -29,7 +29,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.liquibase:liquibase-gradle-plugin:3.0.2"
+        classpath "org.liquibase:liquibase-gradle-plugin:3.1.0"
     }
 }
 apply plugin: 'org.liquibase.gradle'

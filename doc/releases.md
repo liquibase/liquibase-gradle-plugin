@@ -16,7 +16,7 @@ to your build.gradle file.
 This page gives the highlights newer releases.  For complete details of each release, including 
 older releases, see the [changelog](./changelog.md).
 
-### Release 3.1.0 (Coming soon)
+### Release 3.1.0 (December 6, 2025)
 
 - This release adds support for Gradle 9, and it works with the Gradle configuration cache.
 
