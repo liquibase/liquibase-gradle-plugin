@@ -1,0 +1,32 @@
+name: Publish to Maven Central
+
+on:
+  #push:
+    # Pattern matched against refs/tags
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#patterns-to-match-branches-and-tags
+    #tags:
+      #- Release_*
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: 'Set up Java version'
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: 'Make gradlew executable'
+        run: chmod +x ./gradlew
+
+      - name: 'Create Docker Image, Publish to Registry, and Deploy to Container App'
+        run: |
+          ./gradlew -PmavenCentralUsername=${{ secrets.REPO_USERNAME }} \
+                    -PmavenCentralPassword=${{ secrets.REPO_PASSWORD }} \
+                    publish
