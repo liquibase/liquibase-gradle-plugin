@@ -25,8 +25,25 @@ jobs:
       - name: 'Make gradlew executable'
         run: chmod +x ./gradlew
 
+      - name: Configure AWS credentials for vault access
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.LIQUIBASE_VAULT_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Get secrets from vault
+        id: vault-secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+            ,/vault/liquibase
+          parse-json-secrets: true
+
       - name: 'Create Docker Image, Publish to Registry, and Deploy to Container App'
+        env:
+            MAVEN_USERNAME: ${{ env.SONATYPE_USERNAME }}
+            MAVEN_PASSWORD: ${{ env.SONATYPE_TOKEN }}
         run: |
-          ./gradlew -PmavenCentralUsername=${{ secrets.REPO_USERNAME }} \
-                    -PmavenCentralPassword=${{ secrets.REPO_PASSWORD }} \
+          ./gradlew -PmavenCentralUsername=${MAVEN_USERNAME} \
+                    -PmavenCentralPassword=${MAVEN_PASSWORD} \
                     publish
