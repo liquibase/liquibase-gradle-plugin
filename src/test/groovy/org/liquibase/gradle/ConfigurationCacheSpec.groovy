@@ -19,7 +19,7 @@ class ConfigurationCacheSpec {
         def buildFile = new File(projectDir, "build.gradle")
         buildFile.text = """
             // Under TestKit, we do not need a buildscript block
-            // as recommended here https://github.com/liquibase/liquibase-gradle-plugin/blob/master/doc/usage.md#2-setting-up-the-classpath
+            // as recommended here https://github.com/liquibase/liquibase-gradle-plugin/blob/main/doc/usage.md#2-setting-up-the-classpath
             // buildscript { ... }
 
             plugins {
