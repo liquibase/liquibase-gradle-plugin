@@ -31,7 +31,6 @@ class FunctionalCompatibilityTest {
         List<String> pluginCpEntries = computePluginClasspathEntries()
         copyChangelogFixture()
 
-        String searchPath = testProjectDir.toAbsolutePath().toString()
         String testClasspathFiles = toGroovyFilesList(pluginCpEntries)
 
         // Use unique DB per Liquibase version to avoid cross-run state
@@ -42,7 +41,6 @@ class FunctionalCompatibilityTest {
                 'it-project',
                 liquibaseVersion,
                 testClasspathFiles,
-                searchPath,
                 h2Url,
                 true
         )
@@ -76,7 +74,6 @@ class FunctionalCompatibilityTest {
         List<String> pluginCpEntries = computePluginClasspathEntries()
         copyChangelogFixture()
 
-        String searchPath = testProjectDir.toAbsolutePath().toString()
         String testClasspathKtsFiles = toKtsFilesList(pluginCpEntries)
 
         // Use unique DB per Liquibase version to avoid cross-run state
@@ -87,7 +84,6 @@ class FunctionalCompatibilityTest {
                 'it-project',
                 liquibaseVersion,
                 testClasspathKtsFiles,
-                searchPath,
                 h2Url
         )
 
@@ -124,7 +120,6 @@ class FunctionalCompatibilityTest {
         List<String> pluginCpEntries = computePluginClasspathEntries()
         copyChangelogFixture()
 
-        String searchPath = testProjectDir.toAbsolutePath().toString()
         String testClasspathFiles = toGroovyFilesList(pluginCpEntries)
         String h2Url = h2UrlFor('dbfile-missing')
 
@@ -133,7 +128,6 @@ class FunctionalCompatibilityTest {
                 'it-project-missing-liquibase',
                 '4.27.0',
                 testClasspathFiles,
-                searchPath,
                 h2Url,
                 false
         )
@@ -180,22 +174,21 @@ class FunctionalCompatibilityTest {
     }
 
     private static String toGroovyFilesList(List<String> entries) {
-        return entries.collect { "'${it.replace('\\\\', '\\\\\\\\')}'" }.join(', ')
+        return entries.collect { "'${it.replace('\\', '\\\\')}'" }.join(', ')
     }
 
     private static String toKtsFilesList(List<String> entries) {
-        return entries.collect { "\"${it.replace('\\\\', '\\\\\\\\')}\"" }.join(', ')
+        return entries.collect { "\"${it.replace('\\', '\\\\')}\"" }.join(', ')
     }
 
     private String h2UrlFor(String dbName) {
         Path dbPath = testProjectDir.resolve("build/h2/${dbName}")
-        return "jdbc:h2:file:${dbPath.toAbsolutePath().toString()}"
+        return "jdbc:h2:file:${dbPath.toAbsolutePath().toString().replace("\\", "\\\\")}"
     }
 
     private void writeGroovyBuildFiles(String rootName,
                                        String liquibaseVersion,
                                        String testClasspathFiles,
-                                       String searchPath,
                                        String h2Url,
                                        boolean includeRuntimeDeps) {
         Files.writeString(testProjectDir.resolve('settings.gradle'),
@@ -231,7 +224,7 @@ class FunctionalCompatibilityTest {
                         username 'sa'
                         password 'test'
                         changelogFile 'changelog.xml'
-                        searchPath '${searchPath}'
+                        searchPath layout.projectDirectory
                     }
                 }
             }
@@ -241,7 +234,6 @@ class FunctionalCompatibilityTest {
     private void writeKotlinBuildFiles(String rootName,
                                        String liquibaseVersion,
                                        String testClasspathKtsFiles,
-                                       String searchPath,
                                        String h2Url) {
         Files.writeString(testProjectDir.resolve('settings.gradle.kts'),
                 "rootProject.name = \"${rootName}\"")
@@ -272,7 +264,7 @@ class FunctionalCompatibilityTest {
                     "username" to "sa",
                     "password" to "test",
                     "changelogFile" to "changelog.xml",
-                    "searchPath" to "${searchPath}"
+                    "searchPath" to layout.projectDirectory
                 )
             }
         """.stripIndent())

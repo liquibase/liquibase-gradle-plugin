@@ -44,7 +44,7 @@ class ConfigurationCacheSpec {
                         url 'jdbc:h2:mem:testdb'
                         username 'sa'
                         password '1234'
-                        searchPath "${projectDir}"
+                        searchPath layout.projectDirectory
                     }
                 }
                 runList = 'main'
