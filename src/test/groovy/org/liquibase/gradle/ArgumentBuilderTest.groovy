@@ -3,6 +3,7 @@ package org.liquibase.gradle
 import liquibase.Scope
 import liquibase.command.CommandDefinition
 import liquibase.command.CommandFactory
+import org.gradle.api.NamedDomainObjectFactory
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.BeforeEach
@@ -80,7 +81,8 @@ class ArgumentBuilderTest {
         }
     }
 
-    protected static Project newProject(Closure<Activity> activityFactory = { activity }) {
+    protected static Project newProject(
+            NamedDomainObjectFactory<Activity> activityFactory = { activity } as NamedDomainObjectFactory<Activity>) {
         Project project = ProjectBuilder.builder().build()
         LiquibasePlugin.doApplyExtension(project, activityFactory)
         return project

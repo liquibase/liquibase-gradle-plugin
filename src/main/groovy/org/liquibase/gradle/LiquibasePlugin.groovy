@@ -15,11 +15,9 @@
 package org.liquibase.gradle
 
 import liquibase.Scope
-import liquibase.command.CommandArgumentDefinition
 import liquibase.command.CommandDefinition
 import liquibase.command.CommandFactory
-import liquibase.configuration.ConfigurationDefinition
-import liquibase.configuration.LiquibaseConfiguration
+import org.gradle.api.NamedDomainObjectFactory
 import org.gradle.api.Project
 import org.gradle.api.Plugin
 
@@ -35,14 +33,23 @@ class LiquibasePlugin implements Plugin<Project> {
 
 
     void applyExtension(Project project) {
-        def activityClosure = { name ->
+        def activityFactory = { name ->
             new Activity(name)
-        }
-        doApplyExtension(project, activityClosure)
+        } as NamedDomainObjectFactory<Activity>
+        doApplyExtension(project, activityFactory)
     }
 
-    protected static void doApplyExtension(Project project, Closure<Activity> activityClosure) {
-        def activities = project.container(Activity, activityClosure)
+    /**
+     * Create the container that holds the activities defined in the {@code activities} block, and
+     * use it to create the {@code liquibase} extension.
+     *
+     * @param project the project to enhance
+     * @param activityFactory the factory the container uses to make an {@link Activity} for each
+     * named block inside {@code activities}
+     */
+    protected static void doApplyExtension(Project project,
+                                           NamedDomainObjectFactory<Activity> activityFactory) {
+        def activities = project.objects.domainObjectContainer(Activity, activityFactory)
         project.configure(project) {
             extensions.create("liquibase", LiquibaseExtension, activities)
         }
