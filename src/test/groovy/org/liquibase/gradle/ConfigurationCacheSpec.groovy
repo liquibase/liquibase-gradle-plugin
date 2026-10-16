@@ -82,6 +82,67 @@ class ConfigurationCacheSpec {
         assertTrue(result.output.contains("Configuration cache entry stored."))
     }
 
+    @Test
+    void pluginShouldResolveProvidersWithConfigurationCache() {
+        // given an activity whose argument and changelog parameter are Providers
+        def projectDir = testProjectDir.toFile()
+        new File(projectDir, "build.gradle").text = """
+            plugins {
+                id 'org.liquibase.gradle'
+            }
+
+            repositories {
+               mavenCentral()
+            }
+
+            dependencies {
+                liquibaseRuntime 'org.liquibase:liquibase-core:4.33.0'
+                liquibaseRuntime 'info.picocli:picocli:4.7.5'
+                liquibaseRuntime 'com.h2database:h2:2.2.224'
+            }
+
+            liquibase {
+                activities {
+                    main {
+                        changelogFile 'changelog.yml'
+                        url 'jdbc:h2:mem:testdb'
+                        username 'sa'
+                        password providers.provider { '1234' }
+                        changelogParameters([tableName: providers.provider { 'person' }])
+                        searchPath layout.projectDirectory
+                    }
+                }
+                runList = 'main'
+            }
+        """
+        new File(projectDir, "changelog.yml").text = """
+           databaseChangeLog:
+             - changeSet:
+                 id: 1
+                 author: your.name
+                 changes:
+                   - createTable:
+                       tableName: \${tableName}
+                       columns:
+                         - column:
+                             name: id
+                             type: int
+       """
+
+        // when the update task runs with the configuration cache
+        def result = GradleRunner.create()
+                .withProjectDir(projectDir)
+                .withPluginClasspath(loadTestClasspath())
+                .withArguments("update", "--configuration-cache", "-s")
+                .forwardOutput()
+                .build()
+
+        // then the Providers' values reach Liquibase and the configuration is cached
+        assertTrue(result.output.contains("BUILD SUCCESSFUL"))
+        assertTrue(result.output.contains("Configuration cache entry stored."))
+        assertTrue(result.output.contains("Table person created"))
+    }
+
     /**
      * We generate a custom test resource file containing the test classpath
      * during the plugin build.

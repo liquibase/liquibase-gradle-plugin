@@ -4,6 +4,7 @@ package org.liquibase.gradle
 import liquibase.configuration.ConfigurationDefinition
 import liquibase.configuration.LiquibaseConfiguration
 import liquibase.Scope
+import org.gradle.api.provider.Provider
 
 /**
  * This class builds the Liquibase argument array for liquibase 4.24+.  Starting with Liquibase 4.4,
@@ -209,8 +210,9 @@ class ArgumentBuilder {
         arguments.each {
             // We'll handle changelog parameters later.
             if ( it.key != "changelogParameters" ) {
-                projectInfo.logger.trace("liquibase-plugin:    Setting ${it.key}=${it.value} from activities")
-                argumentMap.put(it.key, it.value)
+                def value = resolveValue(it.value)
+                projectInfo.logger.trace("liquibase-plugin:    Setting ${it.key}=${value} from activities")
+                argumentMap.put(it.key, value)
             }
         }
 
@@ -256,8 +258,9 @@ class ArgumentBuilder {
 
         // Start by adding parameters from the activity
         activity.changelogParameters.each {
-            projectInfo.logger.trace("liquibase-plugin:    Adding activity changelogParameter ${it.key}=${it.value}")
-            changelogParameters.put(it.key, it.value)
+            def value = resolveValue(it.value)
+            projectInfo.logger.trace("liquibase-plugin:    Adding activity changelogParameter ${it.key}=${value}")
+            changelogParameters.put(it.key, value)
         }
 
         // Override/add to the map with projectInfo properties
@@ -270,6 +273,18 @@ class ArgumentBuilder {
             changelogParameters.put(key, value)
         }
         return changelogParameters
+    }
+
+    /**
+     * Resolve a value from an activity.  Arguments and changelog parameters may be Gradle
+     * {@link Provider}s, which lets users defer expensive or secret lookups until a Liquibase task
+     * actually runs.  Any other value is returned as-is.
+     *
+     * @param value the value from the activity.
+     * @return the Provider's value if we were given a Provider, otherwise the value itself.
+     */
+    private resolveValue(value) {
+        return value instanceof Provider ? value.get() : value
     }
 
     /**
