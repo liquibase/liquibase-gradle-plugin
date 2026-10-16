@@ -436,6 +436,37 @@ class ArgumentBuilderTest {
         assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
     }
 
+    /**
+     * Test building arguments when an activity argument and a changelog parameter are Gradle
+     * Providers.  Expect each Provider to be resolved to its value when the arguments are built,
+     * so that values like secrets can be looked up lazily, only when a Liquibase task runs.
+     */
+    @Test
+    void buildLiquibaseArgsResolvesProviders() {
+        // given an activity whose argument and changelog parameter are Providers
+        project = newProject()
+        activity.password project.provider { "providedPassword" }
+        activity.changelogParameters(["param1": project.provider { "providedValue1" }])
+
+        // when the arguments are built
+        actualArgs = buildLiquibaseArgs()
+
+        // then the Providers' values are passed to Liquibase
+        expectedArgs = [
+                "--log-file=activityLog",
+                "--log-format=activityFormat",
+                "--log-level=info",
+                "status",
+                "--changelog-file=activityChangelog",
+                "--password=providedPassword",
+                "--username=activityUsername",
+                "--verbose",
+                "-Dparam1=providedValue1",
+                "-Dparam2=value2"
+        ]
+        assertEquals(expectedArgs.join(" "),  actualArgs.join(" "), "Wrong arguments")
+    }
+
     protected List<Object> buildLiquibaseArgs() {
         return argumentBuilder.buildLiquibaseArgs(activity, command.name[0], argumentsForCommand(command), new ProjectInfo(project))
     }

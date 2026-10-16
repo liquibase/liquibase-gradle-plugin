@@ -222,6 +222,23 @@ specified by separating them with a comma, like this:
 `-liquibaseChangelogParameters="param1=value1,param1=value2`.  Due to limitations of Gradle, spaces
 are not allowed in the value of the liquibaseChangelogParameters property.
 
+Activity parameters and changelog parameters can also be Gradle
+[Providers](https://docs.gradle.org/current/javadoc/org/gradle/api/provider/Provider.html).  The
+plugin resolves a Provider only when a Liquibase task runs, so a value that is expensive or needs
+credentials to look up, such as a password from a secrets store, is not fetched by builds that
+don't run Liquibase.  For example:
+
+```groovy
+liquibase {
+    activities {
+        main {
+            password providers.environmentVariable('DB_PASSWORD')
+            changelogParameters([schemaName: providers.gradleProperty('schemaName')])
+        }
+    }
+}
+```
+
 The `liquibase` block can also set two properties; `mainClassName` and `jvmArgs`.
 
 The `mainClassName` property tells the plugin the name of the class to invoke in order to run
