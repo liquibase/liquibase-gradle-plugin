@@ -1,3 +1,12 @@
+Changes for 3.1.1
+=================
+
+- Removed a Gradle deprecation warning, with thanks to Mark Vedder (@javaru).  Fixes #181.
+  
+- Added a performance enhancement that allows Activity arguments and changelog parameters to be
+  Gradle Providers so we can defer evaluation to execution time, with thanks to Daniel Bell
+  (@shinyhappydan).
+
 Changes for 3.1.0
 =================
 

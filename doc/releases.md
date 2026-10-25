@@ -16,6 +16,11 @@ to your build.gradle file.
 This page gives the highlights newer releases.  For complete details of each release, including 
 older releases, see the [changelog](./changelog.md).
 
+### Release 3.1.1 (October 25, 2026)
+
+- This release removes a Gradle deprecation, and allows Activity arguments and changelog parameters
+- to be Gradle Providers.
+
 ### Release 3.1.0 (December 6, 2025)
 
 - This release adds support for Gradle 9, and it works with the Gradle configuration cache.
