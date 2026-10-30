@@ -42,11 +42,25 @@ jobs:
             ,/vault/grouped/sonatype
           parse-json-secrets: true
 
-      # The artifacts are signed with the maintainer's own key, kept in the repository secrets.
+      - name: Configure AWS credentials for the signing key
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.VAULT_AWS_ACCOUNT_ID }}:role/vault-grouped-gpg-signing-4
+          aws-region: us-east-1
+
+      - name: Get the signing key from vault
+        uses: aws-actions/aws-secretsmanager-get-secrets@3a411b6ec5cace3d626412dd917e7bfeac242cfa # v3.0.0
+        with:
+          secret-ids: |
+            ,/vault/grouped/gpg-signing
+          parse-json-secrets: true
+
+      # The vault stores the armored key with escaped newlines.
       - name: 'Publish to Maven Central'
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ env.SONATYPE_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ env.SONATYPE_TOKEN }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew publish
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ env.GPG_PASSPHRASE }}
+        run: |
+          export ORG_GRADLE_PROJECT_signingInMemoryKey="$(printf '%b' "$GPG_SECRET")"
+          ./gradlew publish
