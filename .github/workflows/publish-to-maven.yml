@@ -8,6 +8,10 @@ on:
       #- Release_*
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -28,22 +32,21 @@ jobs:
       - name: Configure AWS credentials for vault access
         uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
         with:
-          role-to-assume: ${{ secrets.LIQUIBASE_VAULT_OIDC_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::${{ secrets.VAULT_AWS_ACCOUNT_ID }}:role/vault-grouped-sonatype-2
           aws-region: us-east-1
 
-      - name: Get secrets from vault
-        id: vault-secrets
+      - name: Get the Maven Central token from vault
         uses: aws-actions/aws-secretsmanager-get-secrets@3a411b6ec5cace3d626412dd917e7bfeac242cfa # v3.0.0
         with:
           secret-ids: |
-            ,/vault/liquibase
+            ,/vault/grouped/sonatype
           parse-json-secrets: true
 
-      - name: 'Create Docker Image, Publish to Registry, and Deploy to Container App'
+      # The artifacts are signed with the maintainer's own key, kept in the repository secrets.
+      - name: 'Publish to Maven Central'
         env:
-            MAVEN_USERNAME: ${{ env.SONATYPE_USERNAME }}
-            MAVEN_PASSWORD: ${{ env.SONATYPE_TOKEN }}
-        run: |
-          ./gradlew -PmavenCentralUsername=${MAVEN_USERNAME} \
-                    -PmavenCentralPassword=${MAVEN_PASSWORD} \
-                    publish
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ env.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ env.SONATYPE_TOKEN }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew publish
